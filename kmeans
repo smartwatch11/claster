@@ -1,0 +1,93 @@
+function Kmeans ($massive, $dimensions, $E = NULL, $clusters = NULL){
+    $center = array();
+    if ($clusters == NULL){
+        $rand_c = array_rand($massive , $num = 2);
+        array_push($center, $massive[$rand_c[0]]);
+        array_push($center, $massive[$rand_c[1]]);
+    } else {
+        $c1 = array();
+        $c2 = array();
+        $col1 = 0;
+        $col2 = 0;
+        for ($j = 0, $size = count($massive); $j < $size; $j++){
+            if ($clusters[$j] == 0){
+                $col1+=1;
+                for ($i = 0; $i<$dimensions; $i++){
+                    $c1[$i] = $c1[$i]+$massive[$j][$i];
+                }
+            } else if ($clusters[$j] == 1){
+                $col2+=1;
+                for ($i = 0; $i<$dimensions; $i++){
+                    $c2[$i] = $c2[$i]+$massive[$j][$i];
+                }
+            }
+        }
+
+        for ($j = 0, $size1 = count($c1); $j<$size1; $j++){
+            $c1[$j] = round($c1[$j]/$col1, 2);
+            $c2[$j] = round($c2[$j]/$col2, 2);
+        }
+        
+        array_push($center, $c1);
+        array_push($center, $c2);
+    }
+    // выбрали центры
+    
+    $sum = array();
+    foreach($massive as $arr){
+        $btw_results = array();
+        for($i = 0, $size = count($arr); $i < $size; $i++){
+            for($j = 0, $lenght = count($center); $j < $lenght; $j++){
+                $temp = ($arr[$i] - $center[$j][$i])**2;
+                array_push($btw_results, $temp);
+            }
+        }
+        array_push($sum, $btw_results);
+    }
+    // вычислили разницу возведенную в квадрат
+
+    $array_cluster = array();
+    foreach($sum as $s){
+        $btw_cluster = array();
+        for($i = 0, $size = count($s)/2; $i < $size; $i++){
+            $sum_Evklid = 0;
+            for($j = $i, $size1 = count($s); $j < $size1; $j=$j+$dimensions){
+                $sum_Evklid = $sum_Evklid + $s[$j];
+            }
+            array_push($btw_cluster, round((sqrt($sum_Evklid)), 2));
+        }
+        array_push($array_cluster, $btw_cluster);
+    }
+    // вычислили сумму измерений и извлекли корень - получили меру расстояния
+    
+    $E_new = 0;
+    $new_clusters = array();
+    foreach($array_cluster as $clus){
+        if($clus[0]>$clus[1]) {
+            array_push($new_clusters, 1);
+            $E_new = $E_new + round($clus[1]**2, 2);
+        } else if($clus[1]>$clus[0]){
+            array_push($new_clusters, 0);
+            $E_new = $E_new + round($clus[0]**2, 2);
+        }
+    }
+    // вычислили к какому кластеру относится и возвели значение меры расстояния в квадрат
+    // суммируем ошибку
+
+    //проверка на ошибку и изменчивость массива кластера
+    if (($E_new > $E && $E != NULL) || (compare_clusters($new_clusters, $clusters) == 0 && $clusters != NULL)){
+        return $clusters;
+    } else if ($E_new < $E || $E == NULL){
+        return Kmeans($massive, $dimensions, $E_new, $new_clusters);
+    }
+}
+
+function compare_clusters($cluster1, $cluster2)
+{
+    if ($cluster2 == NULL){
+        return 0;
+    } else {
+        $diff = array_diff_uassoc($cluster1, $cluster2, "key_compare_func");
+        return count($diff);
+    }
+}
